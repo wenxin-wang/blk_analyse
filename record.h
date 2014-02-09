@@ -21,4 +21,7 @@ struct record {
     struct record *next;
 };
 
+struct record *record_alloc(void);
+void record_free(struct record *r);
+
 #endif /* end of include guard: RECORD_H */

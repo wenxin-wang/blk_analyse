@@ -1,5 +1,5 @@
-source_files = trace_to_table.c
-objects = trace_to_table.o
+source_files = trace_to_table.c record.c
+objects = trace_to_table.o record.o
 
 CFLAGS = -g -W -Wall
 

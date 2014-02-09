@@ -5,7 +5,8 @@
 
 int main()
 {
-    struct record r; 
-    printf("%ld\n", sizeof(r));
+    struct record *head; 
+    head=record_alloc();
+    record_free(head);
     return 0;
 }
