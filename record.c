@@ -27,7 +27,7 @@ struct record *find_by_offset(struct record *h, __u64 _offset)
     return NULL;
 }
 
-void add_head(struct record **ph, struct record *r) {
+void add_record(struct record **ph, struct record *r) {
     r->next=(*ph);
     *ph=r;
 }

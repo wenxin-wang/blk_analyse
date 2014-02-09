@@ -32,6 +32,8 @@ enum {
 struct record *record_alloc(void);
 void record_free(struct record *r);
 struct record *find_by_offset(struct record *h, __u64 _offset);
+void add_record(struct record **ph, struct record *r);
+void rm_record(struct record **pr);
 
 void fscan_time(FILE *fd, struct time *t);
 int fscan_record(FILE *fd, struct record *r);
