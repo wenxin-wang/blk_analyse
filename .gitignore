@@ -1,0 +1,4 @@
+*.d
+*.o
+*.swp
+trace_to_table
