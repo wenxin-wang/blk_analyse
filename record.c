@@ -10,6 +10,24 @@ struct record *record_alloc(void) {
         printf("Malloc for record failed!\n");
         exit(1);
     }
+    r->offset=0;
+    r->len=0;
+    r->marks=0;
+    r->A.sec=0;
+    r->A.nanosec=0;
+    r->Q.sec=0;
+    r->Q.nanosec=0;
+    r->G.sec=0;
+    r->G.nanosec=0;
+    r->I.sec=0;
+    r->I.nanosec=0;
+    r->D.sec=0;
+    r->D.nanosec=0;
+    r->M.sec=0;
+    r->M.nanosec=0;
+    r->C.sec=0;
+    r->C.nanosec=0;
+    r->next=NULL;
     return r;
 }
 
@@ -52,7 +70,7 @@ int fscan_record(FILE *fd, struct record *r) {
     int i, ret;
     fscanf(fd, "%s", c);
     ret=0;
-    for(i=0; c[i]!='\0' && i<4;i++) {
+    for(i=0; c[i]!='\0' && i<4; i++) {
         switch (c[i]) {
             case 'A':
                 fscan_time(fd, &r->A);
