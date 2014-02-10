@@ -1,4 +1,6 @@
 *.d
 *.o
 *.swp
+input*
+output*
 trace_to_table
