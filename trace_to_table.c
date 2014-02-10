@@ -5,10 +5,22 @@
 
 int main()
 {
-    struct record *head; 
-    head=record_alloc();
-    fscan_record(stdin, head);
-    fprint_record(stdout, head);
-    record_free(head);
+    struct record *head;
+    struct record *p;
+    char c;
+
+    head=NULL;
+    fscan_add_record(stdin, &head);
+    while(c=fgetc(stdin) != '\n' && c != EOF) ;
+    fscan_add_record(stdin, &head);
+
+    p=head;
+    while(p) {
+        fprint_record(stdout, p);
+        p=p->next;
+    }
+    while(head) {
+        rm_record(&head);
+    }
     return 0;
 }

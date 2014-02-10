@@ -35,7 +35,7 @@ void record_free(struct record *r) {
     free(r);
 }
 
-struct record *find_by_offset(struct record *h, __u64 _offset)
+struct record *find_or_add_by_offset(struct record *h, __u64 _offset)
 {
     while(h) {
         if(h->offset == _offset)
@@ -59,53 +59,76 @@ void rm_record(struct record **pr) {
     }
 }
 
+void cp_time(struct time *t, struct time *t1) {
+    t->sec = t1->sec;
+    t->nanosec = t1->nanosec;
+}
+
+int set_field(struct record *r, char field, struct time *t) {
+    switch (field) {
+        case 'A':
+            cp_time(&r->A, t);
+            return 0;
+        case 'Q':
+            cp_time(&r->Q, t);
+            return 0;
+        case 'G':
+            cp_time(&r->G, t);
+            return 0;
+        case 'I':
+            cp_time(&r->I, t);
+            return 0;
+        case 'D':
+            cp_time(&r->D, t);
+            return 0;
+        case 'M':
+            cp_time(&r->M, t);
+            return 1;
+        case 'C':
+            cp_time(&r->C, t);
+            return 1;
+        default:
+            return -1;
+    }
+}
+
 /* I/O functions */
 
 void fscan_time(FILE *fd, struct time *t) {
     fscanf(fd, "%u.%u", &t->sec, &t->nanosec);
 }
 
-int fscan_record(FILE *fd, struct record *r) {
+int fscan_add_record(FILE *fd, struct record **ph) {
     char c[4];
+    __u64 _offset;
+    __u32 _len;
     int i, ret;
+    struct time t;
+    struct record *r;
+
+    fscanf(fd, "%Lu + %u", &_offset, &_len);
+    r=*ph;
+    while(r) {
+        if(r->offset == _offset)
+            break;
+        r=r->next;
+    }
+
+    if(!r) {
+        r=record_alloc();
+        r->offset = _offset;
+        r->len = _len;
+        add_record(ph, r);
+    }
+    else if(r->len < _len) { /* merged! */
+        /* Don't know what to do... */
+    }
+
     fscanf(fd, "%s", c);
-    ret=0;
+    fscan_time(fd, &t);
     for(i=0; c[i]!='\0' && i<4; i++) {
-        switch (c[i]) {
-            case 'A':
-                fscan_time(fd, &r->A);
-                i=5; /* Dirty hack */
-                break;
-            case 'Q':
-                fscan_time(fd, &r->Q);
-                i=5; /* Dirty hack */
-                break;
-            case 'G':
-                fscan_time(fd, &r->G);
-                i=5; /* Dirty hack */
-                break;
-            case 'I':
-                fscan_time(fd, &r->I);
-                i=5; /* Dirty hack */
-                break;
-            case 'D':
-                fscan_time(fd, &r->D);
-                i=5; /* Dirty hack */
-                break;
-            case 'M':
-                fscan_time(fd, &r->M);
-                i=5; /* Dirty hack */
-                ret=1;
-                break;
-            case 'C':
-                fscan_time(fd, &r->C);
-                i=5; /* Dirty hack */
-                ret=1;
-                break;
-            default:
-                ret=-1;
-                break;
-        }
+        ret=set_field(r, c[i], &t);
+        if(ret != -1) break;
     }
 
     if(ret==-1) {
@@ -124,7 +147,6 @@ int fscan_record(FILE *fd, struct record *r) {
             fprintf(stderr, "Unknown RWBS %s.\n", c);
             break;
     }
-    fscanf(fd, "%Lu + %u", &r->offset, &r->len);
 
     return ret;
 }

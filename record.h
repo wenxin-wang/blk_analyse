@@ -31,12 +31,14 @@ enum {
 
 struct record *record_alloc(void);
 void record_free(struct record *r);
-struct record *find_by_offset(struct record *h, __u64 _offset);
+struct record *find_or_add_by_offset(struct record *h, __u64 _offset);
 void add_record(struct record **ph, struct record *r);
 void rm_record(struct record **pr);
+void cp_time(struct time *t, struct time *t1);
+int set_field(struct record *r, char field, struct time *t);
 
 void fscan_time(FILE *fd, struct time *t);
-int fscan_record(FILE *fd, struct record *r);
+int fscan_add_record(FILE *fd, struct record **ph);
 void fprint_time(FILE *fd, struct time t);
 void fprint_record(FILE *fd, struct record *r);
 
