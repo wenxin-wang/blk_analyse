@@ -10,11 +10,12 @@ int main()
     char c;
 
     head=NULL;
-    fscan_add_record(stdin, &head);
-    while(c=fgetc(stdin) != '\n' && c != EOF) ;
-    fscan_add_record(stdin, &head);
+    while(fscan_add_record(stdin, &head) != -2) {
+        while((c=fgetc(stdin)) != '\n' && c != EOF) ;
+    }
 
     p=head;
+    fprintf(stdout, "Offset and Length   A               Q               G               I               D               M               C\n");
     while(p) {
         fprint_record(stdout, p);
         p=p->next;

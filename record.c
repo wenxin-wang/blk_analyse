@@ -106,7 +106,8 @@ int fscan_add_record(FILE *fd, struct record **ph) {
     struct time t;
     struct record *r;
 
-    fscanf(fd, "%Lu + %u", &_offset, &_len);
+    ret=fscanf(fd, "%Lu + %u", &_offset, &_len);
+    if(ret == EOF) return -2;
     r=*ph;
     while(r) {
         if(r->offset == _offset)
