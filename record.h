@@ -38,7 +38,7 @@ void cp_time(struct time *t, struct time *t1);
 int set_field(struct record *r, char field, struct time *t);
 
 void fscan_time(FILE *fd, struct time *t);
-int fscan_add_record(FILE *fd, struct record **ph);
+int handle_record(FILE *fd, struct record **ph);
 void fprint_time(FILE *fd, struct time t);
 void fprint_record(FILE *fd, struct record *r);
 

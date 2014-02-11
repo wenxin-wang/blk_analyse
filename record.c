@@ -54,7 +54,7 @@ void rm_record(struct record **pr) {
     struct record *r;
     r=*pr;
     if(r) {
-        *pr=r->next;
+        (*pr)=r->next;
         record_free(r);
     }
 }
@@ -98,28 +98,30 @@ void fscan_time(FILE *fd, struct time *t) {
     fscanf(fd, "%u.%u", &t->sec, &t->nanosec);
 }
 
-int fscan_add_record(FILE *fd, struct record **ph) {
+int handle_record(FILE *fd, struct record **ph) {
     char c[4];
     __u64 _offset;
     __u32 _len;
     int i, ret;
     struct time t;
-    struct record *r;
+    struct record *r, **pr;
 
     ret=fscanf(fd, "%Lu + %u", &_offset, &_len);
     if(ret == EOF) return -2;
-    r=*ph;
-    while(r) {
-        if(r->offset == _offset)
+    pr=ph;
+    while(*pr) {
+        if((*pr)->offset == _offset)
             break;
-        r=r->next;
+        pr=&((*pr)->next);
     }
 
+    r=*pr;
     if(!r) {
         r=record_alloc();
         r->offset = _offset;
         r->len = _len;
         add_record(ph, r);
+        pr=ph;
     }
     else if(r->len < _len) { /* merged! */
         /* Don't know what to do... */
@@ -147,6 +149,11 @@ int fscan_add_record(FILE *fd, struct record **ph) {
         default:
             fprintf(stderr, "Unknown RWBS %s.\n", c);
             break;
+    }
+
+    if(ret == 1) {
+        fprint_record(stdout, r);
+        rm_record(pr);
     }
 
     return ret;

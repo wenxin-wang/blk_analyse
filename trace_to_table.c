@@ -5,17 +5,17 @@
 
 int main()
 {
-    struct record *head;
-    struct record *p;
+    struct record *head, *p;
+    int ret;
     char c;
 
     head=NULL;
-    while(fscan_add_record(stdin, &head) != -2) {
+    fprintf(stdout, "Offset and Length   A               Q               G               I               D               M               C\n");
+    while((ret=handle_record(stdin, &head)) != -2) {
         while((c=fgetc(stdin)) != '\n' && c != EOF) ;
     }
 
     p=head;
-    fprintf(stdout, "Offset and Length   A               Q               G               I               D               M               C\n");
     while(p) {
         fprint_record(stdout, p);
         p=p->next;
