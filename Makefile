@@ -3,11 +3,15 @@ objects = trace_to_table.o record.o
 
 CFLAGS = -g -W -Wall
 
+all: trace_to_table block_to_range
+
 trace_to_table: ${objects}
+
+block_to_range:
 
 .PHONY:
 clean:
-	rm -v *.o *.d trace_to_table
+	rm -v *.o *.d trace_to_table block_to_range
 
 include $(subst .c,.d,$(source_files))
 
