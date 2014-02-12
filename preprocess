@@ -5,7 +5,7 @@ BEGIN {
     ORS=""
 }
 $9 ~ /\+/ {
-    print $8, $9, $10, $6, $4, $7
+    print $8, $9, $10, $7, $6, $4
     printf " "
     for (i=11;i<=NF;i++) { printf "%s ", $i }
     printf "\n"
