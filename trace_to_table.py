@@ -4,7 +4,10 @@
 # Offset+Length A(map time) Q(queue time) G(get time) I(insert time) D(driver time) M(merged time) C(complete time)
 # A record can't have both M and C time.
 
-import sys
+import sys, copy
+
+FIELDS = "AQGIDMC"
+FINAL_ACTIONS = "MC"
 
 MARK_READ = 1<<0
 MARK_WRITE = 1<<1
@@ -30,7 +33,7 @@ class record:
         self.offset = 0
         self.length = 0
         self.marks = 0
-        self.RWBS = 0
+        self.RWBS = ''
         self.fields = {}
     def print_field(self, field, fd=sys.stdout):
         """Print a field's value if exists, else print -1"""
@@ -40,7 +43,7 @@ class record:
             print("{0:5d}.{1:<9d}".format(-1, 0), end=' ', file=fd)
     def printf(self, fd=sys.stdout):
         """Print all fields of a record"""
-        print("{0:d}+{1:d}".format(self.offset, self.length), end=' ', file=fd)
+        print("{0:4} {1:10d}+{2:<4d}".format(self.RWBS, self.offset, self.length), end=' ', file=fd)
         for field in 'A' 'Q' 'G' 'I' 'D' 'M' 'C':
             self.print_field(field, fd)
         print()
@@ -50,11 +53,26 @@ class table:
         """Initialize a table"""
         self.records = []
 
-    def find_or_add_record(self, offset, length, RWBS, marks):
+    def find_or_add_record(self, offset, length, RWBS):
         """Find or add record to table"""
-        for r in self.records:
-            if r.offset == offset and r.marks & marks:
-                return r
+        marks = 0
+        if 'R' in RWBS:
+            marks |=  MARK_READ
+        elif 'W' in RWBS:
+            marks |= MARK_WRITE
+        else:
+            marks |= MARK_UNKNOWN_OP
+
+        rs = [ r for r in self.records if r.offset == offset and r.marks & marks and not r.marks & MARK_FINISHED ]
+        if rs:
+            for r in rs:
+                if r.length == length:
+                    return r
+            if r.length != length:
+                r1 = copy.deepcopy(r)
+                r1.length = length
+                self.records.append(r1)
+                return r1
         else:
             r = record()
             r.offset = offset
@@ -64,27 +82,36 @@ class table:
             self.records.append(r)
             return r
 
-    def read_record(self, fd=sys.stdin):
+    def read_records(self, fd=sys.stdin):
+        """Read records from fd"""
+        for line in fd:
+            self.read_record(line)
+
+    def read_record(self, line):
         """Read a record from input, find it in records and update or add a new one"""
         marks = 0
-        columns = sys.stdin.readline().split()
+        columns = line.split()
         offset = int(columns[0])
         length = int(columns[2])
         RWBS = columns[3]
-
-        if 'R' in RWBS:
-            marks = marks | MARK_READ
-        elif 'W' in RWBS:
-            marks = marks | MARK_WRITE
-        else:
-            marks = marks | MARK_UNKNOWN_OP
-        r = self.find_or_add_record(offset, length, RWBS, marks)
-
         f = columns[4]
+        if f[0] not in FIELDS:
+            return None
+
+        r = self.find_or_add_record(offset, length, RWBS)
+
         sec, nanosec = [ int(i) for i in columns[5].split('.') ]
-        r.fields[f] = field(sec, nanosec)
+        r.fields[f] = field(sec, nanosec) # if f exists, we overwrite it
+
+        if f[0] in FINAL_ACTIONS:
+            r.marks |= MARK_FINISHED
+
+    def print_table(self, fd=sys.stdout):
+        """Print the table"""
+        print("{:4}  {}  {:16}{:16}{:16}{:16}{:16}{:16}{}".format("RWBS", "Offset and Length", 'A', 'Q', 'G', 'I', 'D', 'M', 'C'), file=fd)
+        for r in t.records:
+            r.printf()
 
 t = table()
-t.read_record()
-for r in t.records:
-    r.printf()
+t.read_records()
+t.print_table()
