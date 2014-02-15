@@ -3,8 +3,10 @@
 # The python version for translating blkparse output into a table. Each row in a table is a record of the time stamps of a request, in this format:
 # Offset+Length A(map time) Q(queue time) G(get time) I(insert time) D(driver time) M(merged time) C(complete time)
 # A record can't have both M and C time.
+# Arguments:
+# i:input o:output O:offset
 
-import sys, copy
+import sys, copy, argparse
 
 FIELDS = "AQGIDMC"
 FINAL_ACTIONS = "MC"
@@ -16,6 +18,15 @@ MARK_MERGED = 1<<3
 MARK_FINISHED = 1<<4
 MARK_FAILED = 1<<5
 MARK_UNKNOWN_OP = 1<<6
+
+arg_parser = argparse.ArgumentParser(description='Tranlate blkparse output into a table of records.')
+arg_parser.add_argument('-i', dest='input', help='Set input file')
+arg_parser.add_argument('-o', dest='output', help='Set output file')
+arg_parser.add_argument('-O', dest='offset', type=int, default=0, help='Set offset')
+args = arg_parser.parse_args()
+
+infile = open(args.input, encoding='utf-8') if args.input else sys.stdin
+outfile = open(args.output, encoding='utf-8') if args.output else sys.stdout
 
 class field:
     def __init__(self, sec=0, nanosec=0):
@@ -75,7 +86,7 @@ class table:
                 return r1
         else:
             r = record()
-            r.offset = offset
+            r.offset = offset + args.offset # Note we add offset here
             r.length = length
             r.RWBS = RWBS
             r.marks = r.marks | marks
@@ -113,5 +124,5 @@ class table:
             r.printf()
 
 t = table()
-t.read_records()
-t.print_table()
+t.read_records(infile)
+t.print_table(outfile)
