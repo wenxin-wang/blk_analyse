@@ -17,7 +17,7 @@ class range:
         self.length = self.last - self.first + 1
     def __str__(self):
         """Stringlize range"""
-        return "{}-{}".format(self.first, self.last)
+        return "{}-{} {}".format(self.first, self.last, self.length)
     def contain(self, value):
         """Find if a block is within range"""
         return value >= self.first and value <= self.last
@@ -41,6 +41,27 @@ class ranges:
             if r.contain(block):
                 return r
         raise ValueError('Ranges doesn\'t contain block {}'.format(block))
+    def split_logic(self, offset, length):
+        """Split offset+length into a list"""
+        list = []
+        for r in self.ranges:
+            if offset < r.length:
+                left = r.first + offset
+                if r.last - left + 1 >= length:
+                    list.append([left, length, str(r)])
+                    length = 0
+                    return list
+                else:
+                    lth = r.last - left + 1
+                    list.append([left, lth, str(r)])
+                    offset = 0
+                    length -= lth
+            else:
+                offset -= r.length
+        if length > 0:
+            raise ValueError('Ranges couldn\'t map all the blocks')
+        return list
+
     def map(self, logic):
         """Find the physic location for logic block"""
         for r in self.ranges:
@@ -48,11 +69,14 @@ class ranges:
                 return r.first + logic
             else:
                 logic -= r.length
-        raise ValueError('Range doesn\'t contain logic block {}'.format(logic+1))
+        raise ValueError('Ranges doesn\'t contain logic block {}'.format(logic+1))
 
 block_range = ranges()
 with open(args.host, encoding='utf-8') as hostblocks:
     block_range.read(hostblocks)
-r = (block_range.find_range(block_range.map(4474880)))
-print(r)
-print(r.contain(726597632))
+l = block_range.split_logic(12,4376825)
+print(l)
+s = 0
+for r in l:
+    s += r[1]
+print(s)
