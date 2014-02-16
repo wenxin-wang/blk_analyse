@@ -79,7 +79,7 @@ int main(int argc, char **argv)
         last = current;
     }
     if(start != current) {
-        fprintf(output, "%Lu - %Lu\n", offset + start*bs, offset + last*bs);
+        fprintf(output, "%Lu-%Lu\n", offset + start*bs, offset + last*bs);
     }
     return 0;
 }
