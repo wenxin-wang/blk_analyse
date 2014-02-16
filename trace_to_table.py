@@ -33,9 +33,9 @@ class field:
         """Initialize a field"""
         self.sec = sec
         self.nanosec = nanosec
-    def printf(self, fd=sys.stdout):
-        """Print a fields value"""
-        print("{0:5d}.{1:<9d}".format(self.sec, self.nanosec), end=' ', file=fd)
+    def __str__(self):
+        """Stringlize a fields value"""
+        return "{0:5d}.{1:<9d}".format(self.sec, self.nanosec)
 
 
 class record:
@@ -49,13 +49,13 @@ class record:
     def print_field(self, field, fd=sys.stdout):
         """Print a field's value if exists, else print -1"""
         if self.fields.__contains__(field):
-            self.fields[field].printf(fd)
+            print(self.fields[field], end=' ', file=fd)
         else:
             print("{0:5d}.{1:<9d}".format(-1, 0), end=' ', file=fd)
     def printf(self, fd=sys.stdout):
         """Print all fields of a record"""
         print("{0:4} {1:10d}+{2:<4d}".format(self.RWBS, self.offset, self.length), end=' ', file=fd)
-        for field in 'A' 'Q' 'G' 'I' 'D' 'M' 'C':
+        for field in FIELDS:
             self.print_field(field, fd)
         print()
 
