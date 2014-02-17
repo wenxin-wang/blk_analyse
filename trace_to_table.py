@@ -13,12 +13,24 @@ arg_parser = argparse.ArgumentParser(description='Tranlate blkparse output into 
 arg_parser.add_argument('-i', dest='input', help='Set input file')
 arg_parser.add_argument('-o', dest='output', help='Set output file')
 arg_parser.add_argument('-O', dest='offset', type=int, default=0, help='Set offset')
+arg_parser.add_argument('--hblock', help='Set host block file')
+arg_parser.add_argument('--gblock', help='Set guest block file')
 args = arg_parser.parse_args()
 
 infile = open(args.input, encoding='utf-8') if args.input else sys.stdin
 outfile = open(args.output, encoding='utf-8') if args.output else sys.stdout
 
+block_range = record.ranges()
+with open(args.hblock, encoding='utf-8') as hostblocks:
+    block_range.read(hostblocks)
+
 t = record.table()
-print(args.offset)
 t.read_records(infile, int(args.offset))
+rs = block_range.split(t)
+
 t.print_table(outfile)
+
+print('#' * 40)
+
+for l in rs:
+    print(l[0], l[1])

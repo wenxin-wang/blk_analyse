@@ -112,3 +112,87 @@ class table:
         print("{:4}  {}  {:16}{:16}{:16}{:16}{:16}{:16}{}".format("RWBS", "Offset and Length", 'A', 'Q', 'G', 'I', 'D', 'M', 'C'), file=fd)
         for r in self.records:
             print(r)
+
+# 按照range来拆分reocrd。
+class range:
+    def __init__(self, first, last):
+        """Initialize range"""
+        if(first > last):
+            raise ValueError('First block in range must not be larger than the last one')
+        self.first = first
+        self.last = last
+        self.length = self.last - self.first + 1
+    def __str__(self):
+        """Stringlize range"""
+        return "{}-{} {}".format(self.first, self.last, self.length)
+    def contain(self, value):
+        """Find if a block is within range"""
+        return value >= self.first and value <= self.last
+
+class ranges:
+    def __init__(self):
+        """Initialize range"""
+        self.ranges = []
+    def __str__(self):
+        """Stringlize ranges"""
+        string = '\n'.join([str(r) for r in self.ranges])
+        return string
+    def read(self, fd):
+        """Read from fd"""
+        for line in fd:
+            line = line.split('-')
+            self.ranges.append(range(int(line[0]), int(line[1])))
+    def find_range(self, block):
+        """Find the range a block belongs"""
+        for r in self.ranges:
+            if r.contain(block):
+                return r
+        raise ValueError('Ranges doesn\'t contain block {}'.format(block))
+
+    def split_logic(self, offset, length):
+        """Split logical offset+length into a list"""
+        splitted = []
+        max_offset = 0
+        for r in self.ranges:
+            start = offset - max_offset # possible start in this range if offset is within this range
+            max_offset += r.length - 1
+            if offset <= max_offset:
+                start += r.first
+                if r.last - start + 1 >= length:
+                    splitted.append([offset, start, length])
+                    length = 0
+                    return splitted
+                else:
+                    lth = r.last - start + 1
+                    splitted.append([offset, start, lth])
+                    offset = max_offset
+                    length -= lth
+        if length > 0:
+            raise ValueError('Ranges couldn\'t map all the blocks')
+        return splitted
+
+    def map(self, logic):
+        """Find the physic location for logic block"""
+        for r in self.ranges:
+            if logic < r.length:
+                return r.first + logic
+            else:
+                logic -= r.length
+        raise ValueError('Ranges doesn\'t contain logic block {}'.format(logic+1))
+
+    def split(self, table):
+        """Split a table"""
+        index = 0
+        records = []
+        for record in table.records:
+            splitted = self.split_logic(record.offset, record.length)
+            if len(splitted) > 1:
+                for piece in splitted:
+                    new = record.dup()
+                    new.offset = piece[0]
+                    new.length = piece[2]
+                    records.append([new, piece[1]])
+            else:
+                records.append([ record, splitted[0][1] ])
+            index += 1
+        return records
