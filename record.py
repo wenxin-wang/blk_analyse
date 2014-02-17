@@ -15,6 +15,20 @@ MARK_FINISHED = 1<<4
 MARK_FAILED = 1<<5
 MARK_UNKNOWN_OP = 1<<6
 
+class transaction:
+    def __init__(self, offset, length):
+        """Initialize transaction"""
+        if(length <= 0):
+            raise ValueError('Length of a transaction must be larger than 0')
+        self.offset = offset
+        self.length = length
+    def __str__(self):
+        """Stringlize transaction"""
+        return "{1:10d}+{2:<4d}".format(self.offset, self.length)
+    def contain(self, value):
+        """Find if a block is within transaction"""
+        return value >= self.offset and value < self.offset + self.length
+
 class field:
     def __init__(self, sec=0, nanosec=0):
         """Initialize a field"""
@@ -26,12 +40,11 @@ class field:
 
 
 class record:
-    def __init__(self):
+    def __init__(self, offset=0, length=0, RWBS='', marks=0):
         """Initialize a record"""
-        self.offset = 0
-        self.length = 0
-        self.marks = 0
-        self.RWBS = ''
+        self.blocks = transaction(offset, length)
+        self.marks = marks
+        self.RWBS = RWBS
         self.fields = {}
     def dup(self):
         return copy.deepcopy(self)
@@ -43,11 +56,15 @@ class record:
             return "{0:5d}.{1:<9d}".format(-1, 0)
     def __str__(self):
         """Stringlize a record"""
-        string = "{0:4} {1:10d}+{2:<4d}".format(self.RWBS, self.offset, self.length)
+        string = "{0:4}".format(self.RWBS) + str(self.blocks)
         for field in FIELDS:
             string += ' '
             string += self.str_field(field)
         return string
+    def same_offset(self, offset):
+        return self.blocks.offset == offset
+    def same_length(self, length):
+        return self.blocks.length == length
 
 class table:
     def __init__(self):
@@ -64,22 +81,18 @@ class table:
         else:
             marks |= MARK_UNKNOWN_OP
 
-        rs = [ r for r in self.records if r.offset == offset and r.marks & marks and not r.marks & MARK_FINISHED ]
+        rs = [ r for r in self.records if r.same_offset(offset) and r.marks & marks and not r.marks & MARK_FINISHED ]
         if rs:
             for r in rs:
-                if r.length == length:
+                if r.same_length(length):
                     return r
-            if r.length != length:
+            if not r.same_length(length):
                 r1 = r.dup()
-                r1.length = length
+                r1.blocks.length = length
                 self.records.append(r1)
                 return r1
         else:
-            r = record()
-            r.offset = offset + global_offset
-            r.length = length
-            r.RWBS = RWBS
-            r.marks = r.marks | marks
+            r = record(offset + global_offset, length, RWBS, marks)
             self.records.append(r)
             return r
 
@@ -113,25 +126,9 @@ class table:
         for r in self.records:
             print(r)
 
-# 按照range来拆分reocrd。
-class range:
-    def __init__(self, first, last):
-        """Initialize range"""
-        if(first > last):
-            raise ValueError('First block in range must not be larger than the last one')
-        self.first = first
-        self.last = last
-        self.length = self.last - self.first + 1
-    def __str__(self):
-        """Stringlize range"""
-        return "{}-{} {}".format(self.first, self.last, self.length)
-    def contain(self, value):
-        """Find if a block is within range"""
-        return value >= self.first and value <= self.last
-
 class ranges:
     def __init__(self):
-        """Initialize range"""
+        """Initialize transaction"""
         self.ranges = []
     def __str__(self):
         """Stringlize ranges"""
@@ -140,25 +137,22 @@ class ranges:
     def read(self, fd):
         """Read from fd"""
         for line in fd:
-            line = line.split('-')
-            self.ranges.append(range(int(line[0]), int(line[1])))
+            line = line.split('+')
+            self.ranges.append(transaction(int(line[0]), int(line[1])))
     def find_range(self, block):
-        """Find the range a block belongs"""
+        """Find the transaction a block belongs"""
         for r in self.ranges:
             if r.contain(block):
                 return r
         raise ValueError('Ranges doesn\'t contain block {}'.format(block))
 
-    def split_logic(self, offset, length):
-        """Split logical offset+length into a list"""
+    def split_logic(self, t):
+        """Split logical t into a list"""
         splitted = []
-        max_offset = 0
+        found = 0
         for r in self.ranges:
-            start = offset - max_offset # possible start in this range if offset is within this range
-            max_offset += r.length - 1
-            if offset <= max_offset:
-                start += r.first
-                if r.last - start + 1 >= length:
+            if r.contain(offset):
+                if r.length >= t.length:
                     splitted.append([offset, start, length])
                     length = 0
                     return splitted
@@ -167,25 +161,14 @@ class ranges:
                     splitted.append([offset, start, lth])
                     offset = max_offset
                     length -= lth
-        if length > 0:
-            raise ValueError('Ranges couldn\'t map all the blocks')
-        return splitted
-
-    def map(self, logic):
-        """Find the physic location for logic block"""
-        for r in self.ranges:
-            if logic < r.length:
-                return r.first + logic
-            else:
-                logic -= r.length
-        raise ValueError('Ranges doesn\'t contain logic block {}'.format(logic+1))
+        raise ValueError('Ranges couldn\'t map all the blocks')
 
     def split(self, table):
         """Split a table"""
         index = 0
         records = []
         for record in table.records:
-            splitted = self.split_logic(record.offset, record.length)
+            splitted = self.split_logic(record.blocks)
             if len(splitted) > 1:
                 for piece in splitted:
                     new = record.dup()

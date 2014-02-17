@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     bs = 4096;
     offset = 0;
 
-	while ((opt = getopt(argc, argv, S_OPTS)) != -1) {
+    while ((opt = getopt(argc, argv, S_OPTS)) != -1) {
         switch(opt) {
             case 'i':
                 input = fopen(optarg, "r");
@@ -73,13 +73,13 @@ int main(int argc, char **argv)
     start = last = current;
     while(fscanf(input, "%Lu", &current) == 1) {
         if( current != last + 1 ) {
-            fprintf(output, "%Lu - %Lu\n", offset + start*bs, offset + last*bs);
+            fprintf(output, "%Lu+%Lu\n", offset + start*bs, (last-start+1)*bs);
             start = current;
         }
         last = current;
     }
     if(start != current) {
-        fprintf(output, "%Lu-%Lu\n", offset + start*bs, offset + last*bs);
+        fprintf(output, "%Lu+%Lu\n", offset + start*bs, (last-start+1)*bs);
     }
     return 0;
 }
