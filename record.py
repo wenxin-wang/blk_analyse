@@ -33,6 +33,8 @@ class record:
         self.marks = 0
         self.RWBS = ''
         self.fields = {}
+    def dup(self):
+        return copy.deepcopy(self)
     def print_field(self, field, fd=sys.stdout):
         """Print a field's value if exists, else print -1"""
         if self.fields.__contains__(field):
@@ -67,7 +69,7 @@ class table:
                 if r.length == length:
                     return r
             if r.length != length:
-                r1 = copy.deepcopy(r)
+                r1 = r.dup()
                 r1.length = length
                 self.records.append(r1)
                 return r1
