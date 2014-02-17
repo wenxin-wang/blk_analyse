@@ -1,4 +1,5 @@
 # g_to_h.py将guest上的record映射到host上的record。如果需要，对guest上的record进行必要的拆分。
+# range.py定义了range，按照range来拆分reocrd。
 
 class range:
     def __init__(self, first, last):
