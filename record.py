@@ -24,7 +24,7 @@ class transaction:
         self.length = length
     def __str__(self):
         """Stringlize transaction"""
-        return "{1:10d}+{2:<4d}".format(self.offset, self.length)
+        return "{:10d}+{:<4d}".format(self.offset, self.length)
     def contain(self, value):
         """Find if a block is within transaction"""
         return value >= self.offset and value < self.offset + self.length
@@ -146,21 +146,34 @@ class ranges:
                 return r
         raise ValueError('Ranges doesn\'t contain block {}'.format(block))
 
-    def split_logic(self, t):
+    def split_logic(self, offset, length):
         """Split logical t into a list"""
         splitted = []
-        found = 0
+        o = 0
+        i = 0
         for r in self.ranges:
-            if r.contain(offset):
-                if r.length >= t.length:
-                    splitted.append([offset, start, length])
-                    length = 0
-                    return splitted
-                else:
-                    lth = r.last - start + 1
-                    splitted.append([offset, start, lth])
-                    offset = max_offset
-                    length -= lth
+            if o <= offset and o + r.length > offset:
+                o = offset - o
+                break
+            i += 1
+            o += r.length
+        if not i < len(self.ranges):
+            raise ValueError('Ranges couldn\'t map up to logic offset {}' % offset)
+
+        # i is the index of range containing 'offset', o is the offset of 'offset' from the start of that range
+        while i < len(self.ranges):
+            r = self.ranges[i]
+            start = r.offset + o
+            if r.length >= length:
+                splitted.append([offset, start, length])
+                length = 0
+                return splitted
+            else:
+                splitted.append([offset, start, r.length])
+                length -= r.length
+                offset += r.length
+                o = 0
+            i += 1
         raise ValueError('Ranges couldn\'t map all the blocks')
 
     def split(self, table):
@@ -168,12 +181,12 @@ class ranges:
         index = 0
         records = []
         for record in table.records:
-            splitted = self.split_logic(record.blocks)
+            splitted = self.split_logic(record.blocks.offset, record.blocks.length)
             if len(splitted) > 1:
                 for piece in splitted:
                     new = record.dup()
-                    new.offset = piece[0]
-                    new.length = piece[2]
+                    new.blocks.offset = piece[0]
+                    new.blocks.length = piece[2]
                     records.append([new, piece[1]])
             else:
                 records.append([ record, splitted[0][1] ])
