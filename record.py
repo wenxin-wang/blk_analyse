@@ -35,18 +35,19 @@ class record:
         self.fields = {}
     def dup(self):
         return copy.deepcopy(self)
-    def print_field(self, field, fd=sys.stdout):
-        """Print a field's value if exists, else print -1"""
+    def str_field(self, field):
+        """Stringlize a field's value if exists, else -1"""
         if self.fields.__contains__(field):
-            print(self.fields[field], end=' ', file=fd)
+            return str(self.fields[field])
         else:
-            print("{0:5d}.{1:<9d}".format(-1, 0), end=' ', file=fd)
-    def print_record(self, fd=sys.stdout):
-        """Print all fields of a record"""
-        print("{0:4} {1:10d}+{2:<4d}".format(self.RWBS, self.offset, self.length), end=' ', file=fd)
+            return "{0:5d}.{1:<9d}".format(-1, 0)
+    def __str__(self):
+        """Stringlize a record"""
+        string = "{0:4} {1:10d}+{2:<4d}".format(self.RWBS, self.offset, self.length)
         for field in FIELDS:
-            self.print_field(field, fd)
-        print()
+            string += ' '
+            string += self.str_field(field)
+        return string
 
 class table:
     def __init__(self):
@@ -110,4 +111,4 @@ class table:
         """Print the table"""
         print("{:4}  {}  {:16}{:16}{:16}{:16}{:16}{:16}{}".format("RWBS", "Offset and Length", 'A', 'Q', 'G', 'I', 'D', 'M', 'C'), file=fd)
         for r in self.records:
-            r.print_record()
+            print(r)
