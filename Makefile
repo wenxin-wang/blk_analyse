@@ -1,8 +1,9 @@
 CFLAGS = -g -W -Wall
 
-all: block_to_range
+all: block_to_range find_logic
 
 block_to_range:
+find_logic:
 
 .PHONY:
 clean:
