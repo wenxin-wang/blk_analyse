@@ -15,18 +15,18 @@ MARK_FINISHED = 1<<4
 MARK_FAILED = 1<<5
 MARK_UNKNOWN_OP = 1<<6
 
-class transaction:
+class address:
     def __init__(self, offset, length):
-        """Initialize transaction"""
+        """Initialize address"""
         if(length <= 0):
-            raise ValueError('Length of a transaction must be larger than 0')
+            raise ValueError('Length of a address must be larger than 0')
         self.offset = offset
         self.length = length
     def __str__(self):
-        """Stringlize transaction"""
+        """Stringlize address"""
         return "{:10d}+{:<4d}".format(self.offset, self.length)
     def contain(self, value):
-        """Find if a block is within transaction"""
+        """Find if a block is within address"""
         return value >= self.offset and value < self.offset + self.length
 
 class field:
@@ -42,7 +42,7 @@ class field:
 class record:
     def __init__(self, offset=0, length=0, RWBS='', marks=0):
         """Initialize a record"""
-        self.blocks = transaction(offset, length)
+        self.blocks = address(offset, length)
         self.marks = marks
         self.RWBS = RWBS
         self.fields = {}
@@ -126,9 +126,13 @@ class table:
         for r in self.records:
             print(r)
 
+    def split_table(self, t):
+        """Split a table"""
+
+
 class ranges:
     def __init__(self):
-        """Initialize transaction"""
+        """Initialize address"""
         self.ranges = []
     def __str__(self):
         """Stringlize ranges"""
@@ -138,9 +142,9 @@ class ranges:
         """Read from fd"""
         for line in fd:
             line = line.split('+')
-            self.ranges.append(transaction(int(line[0]), int(line[1])))
+            self.ranges.append(address(int(line[0]), int(line[1])))
     def find_range(self, block):
-        """Find the transaction a block belongs"""
+        """Find the address a block belongs"""
         for r in self.ranges:
             if r.contain(block):
                 return r
