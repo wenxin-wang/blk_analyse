@@ -126,9 +126,48 @@ class table:
         for r in self.records:
             print(r)
 
-    def split_table(self, t):
-        """Split a table"""
+    def filter(self, ranges):
+        self.records = [ r for r in self.records if ranges.find_block(r.blocks.offset) ]
 
+class r2a_maps:
+    def __init__(self):
+        """Initialize r2a_maps"""
+        self.maps = []
+    def add(self, record, address):
+        """Add a r2a_map"""
+        self.maps.append([record, address])
+    def print_maps(self):
+        """Print r2a_maps"""
+        for m in self.maps:
+            for o in m:
+                print(o)
+    def split_grecord(self, offset, length, htable):
+        """Split a guest record"""
+        a2r = []
+        for hr in htable.records:
+            if length <= 0:
+                return a2r
+            if hr.blocks.contain(offset):
+                lth = hr.blocks.length - (offset - hr.blocks.offset)
+                if  lth >= length:
+                    a2r.append([offset, length, hr])
+                    return a2r
+                else:
+                    a2r.append([offset, lth, hr])
+                    offset += lth
+                    length -= lth
+        raise ValueError('Htable couldn\'t map up to logic offset {}'.format(offset))
+
+    def gen_r2r_maps(self, htable):
+        """Generate r2r_maps from host table"""
+        ghtable = table()
+        for m in self.maps:
+            try:
+                a2r = self.split_grecord(m[1].offset, m[1].length, htable)
+            except ValueError as e:
+                print(m[0], m[1])
+                print(e)
+                continue
 
 class ranges:
     def __init__(self):
@@ -143,13 +182,11 @@ class ranges:
         for line in fd:
             line = line.split('+')
             self.ranges.append(address(int(line[0]), int(line[1])))
-    def find_range(self, block):
+    def find_block(self, block):
         """Find the address a block belongs"""
         for r in self.ranges:
             if r.contain(block):
                 return r
-        raise ValueError('Ranges doesn\'t contain block {}'.format(block))
-
     def split_logic(self, offset, length):
         """Split logical t into a list"""
         splitted = []
@@ -168,14 +205,15 @@ class ranges:
         while i < len(self.ranges):
             r = self.ranges[i]
             start = r.offset + o
-            if r.length >= length:
+            lth = r.length - o
+            if lth >= length:
                 splitted.append([offset, start, length])
                 length = 0
                 return splitted
             else:
-                splitted.append([offset, start, r.length])
-                length -= r.length
-                offset += r.length
+                splitted.append([offset, start, lth])
+                length -= lth
+                offset += lth
                 o = 0
             i += 1
         raise ValueError('Ranges couldn\'t map all the blocks')
@@ -183,7 +221,7 @@ class ranges:
     def split(self, table):
         """Split a table"""
         index = 0
-        records = []
+        ramaps = r2a_maps()
         for record in table.records:
             splitted = self.split_logic(record.blocks.offset, record.blocks.length)
             if len(splitted) > 1:
@@ -191,8 +229,8 @@ class ranges:
                     new = record.dup()
                     new.blocks.offset = piece[0]
                     new.blocks.length = piece[2]
-                    records.append([new, piece[1]])
+                    ramaps.add(new, address(piece[1], piece[2]))
             else:
-                records.append([ record, splitted[0][1] ])
+                ramaps.add(record, address(splitted[0][1], splitted[0][2]))
             index += 1
-        return records
+        return ramaps

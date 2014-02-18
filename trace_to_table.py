@@ -10,27 +10,48 @@ import sys, argparse
 import record
 
 arg_parser = argparse.ArgumentParser(description='Tranlate blkparse output into a table of records.')
-arg_parser.add_argument('-i', dest='input', help='Set input file')
+arg_parser.add_argument('-hi', dest='hparse', help='Set host blkparse file')
+arg_parser.add_argument('-gi', dest='gparse', help='Set guest blkparse file')
 arg_parser.add_argument('-o', dest='output', help='Set output file')
-arg_parser.add_argument('-O', dest='offset', type=int, default=0, help='Set offset')
+arg_parser.add_argument('-hO', dest='hoffset', type=int, default=0, help='Set host offset')
+arg_parser.add_argument('-gO', dest='goffset', type=int, default=0, help='Set guest offset')
 arg_parser.add_argument('--hblock', help='Set host block file')
 arg_parser.add_argument('--gblock', help='Set guest block file')
 args = arg_parser.parse_args()
 
-infile = open(args.input, encoding='utf-8') if args.input else sys.stdin
 outfile = open(args.output, encoding='utf-8') if args.output else sys.stdout
 
-block_range = record.ranges()
+h_block_range = record.ranges()
 with open(args.hblock, encoding='utf-8') as hostblocks:
-    block_range.read(hostblocks)
+    h_block_range.read(hostblocks)
 
-t = record.table()
-t.read_records(infile, int(args.offset))
-rs = block_range.split(t)
+g_block_range = record.ranges()
+with open(args.gblock, encoding='utf-8') as guestblocks:
+    g_block_range.read(guestblocks)
 
-t.print_table(outfile)
+ht = record.table()
+with open(args.hparse, encoding='utf-8') as hinput:
+    ht.read_records(hinput, int(args.hoffset))
+ht.filter(h_block_range)
 
+gt = record.table()
+with open(args.gparse, encoding='utf-8') as ginput:
+    gt.read_records(ginput, int(args.goffset))
+gt.print_table(outfile)
+print('*' * 40)
+gt.filter(g_block_range)
+
+print('*' * 40)
+gt.print_table(outfile)
+grs = h_block_range.split(gt)
 print('#' * 40)
-
-for l in rs:
-    print(l[0], l[1])
+print(h_block_range.split_logic(0, 8))
+print(h_block_range.split_logic(4999168, 8))
+print(h_block_range.split_logic(4999176, 8))
+print(h_block_range.find_block(721801471))
+#ht.print_table(outfile)
+#gt.print_table(outfile)
+print('#' * 40)
+#grs.print_maps()
+print('#' * 40)
+grs.gen_r2r_maps(ht)
