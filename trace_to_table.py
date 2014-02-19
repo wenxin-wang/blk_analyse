@@ -35,12 +35,12 @@ with open(args.gblock, encoding='utf-8') as guestblocks:
 
 ht = record.table()
 with open(args.hparse, encoding='utf-8') as hinput:
-    ht.read_records(hinput, args.hoffset, time_offset=[args.htsec, args.htnsec])
+    ht.read_records(hinput, args.hoffset, time_offset=record.time(args.htsec, args.htnsec))
 ht.filter(h_block_range)
 
 gt = record.table()
 with open(args.gparse, encoding='utf-8') as ginput:
-    gt.read_records(ginput, args.goffset, time_offset=[args.gtsec, args.gtnsec])
+    gt.read_records(ginput, args.goffset, time_offset=record.time(args.gtsec, args.gtnsec))
 #gt.print_table(outfile)
 print('*' * 40)
 gt.filter(g_block_range)
@@ -63,7 +63,4 @@ for i in x:
     print(i[0], i[1])
 t1 = record.time(1392784133, 67112832)
 t2 = record.time(1392784137, 651539472)
-print(t2 - t1)
-t1 = record.time(1392784133, 68258665)
-t2 = record.time(1392784137, 726569053)
 print(t2 - t1)

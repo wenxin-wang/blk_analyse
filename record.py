@@ -11,9 +11,10 @@ MARK_READ = 1<<0
 MARK_WRITE = 1<<1
 MARK_COMPLETE = 1<<2
 MARK_MERGED = 1<<3
-MARK_FINISHED = 1<<4
-MARK_FAILED = 1<<5
-MARK_UNKNOWN_OP = 1<<6
+MARK_MERGER = 1<<4
+MARK_FINISHED = 1<<5
+MARK_FAILED = 1<<6
+MARK_UNKNOWN_OP = 1<<7
 
 class address:
     def __init__(self, offset, length):
@@ -38,6 +39,7 @@ class time:
         """Stringlize a times value"""
         return "{0:5d}.{1:<9d}".format(self.sec, self.nanosec)
     def __sub__(self, t):
+        """time __sub__ time"""
         nanosec = self.nanosec - t.nanosec
         sec = 0
         if nanosec < 0:
@@ -45,6 +47,19 @@ class time:
             sec -= 1
         sec += (self.sec - t.sec)
         return time(sec, nanosec)
+    def __add__(self, t):
+        """time __add__ time"""
+        nanosec = self.nanosec + t.nanosec
+        sec = nanosec // 10**9
+        nanosec %= 10**9
+        sec += (self.sec + t.sec)
+        return time(sec, nanosec)
+
+    @classmethod
+    def from_str(cls, string):
+        """Construct time from string"""
+        sec, nanosec = [ int(i) for i in string.split('.') ]
+        return cls(sec, nanosec)
 
 class record:
     def __init__(self, offset=0, length=0, RWBS='', marks=0):
@@ -103,7 +118,7 @@ class table:
             self.records.append(r)
             return r
 
-    def read_records(self, fd=sys.stdin, global_offset=0, time_offset=[0,0]):
+    def read_records(self, fd=sys.stdin, global_offset=0, time_offset=time(0,0)):
         """Read records from fd"""
         for line in fd:
             self.read_record(line, global_offset, time_offset)
@@ -121,12 +136,9 @@ class table:
 
         r = self.find_or_add_record(offset, length, RWBS, global_offset)
 
-        sec, nanosec = [ int(i) for i in columns[5].split('.') ]
-        nanosec += time_offset[1]
-        sec += nanosec // 10**9
-        nanosec %= 10**9
-        sec += time_offset[0]
-        r.fields[f] = time(sec, nanosec) # if f exists, we overwrite it
+        t = time.from_str(columns[5])
+        t = t + time_offset
+        r.fields[f] = t # if f exists, we overwrite it
 
         if f[0] in FINAL_ACTIONS:
             r.marks |= MARK_FINISHED
