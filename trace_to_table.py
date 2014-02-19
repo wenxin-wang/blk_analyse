@@ -61,6 +61,6 @@ print('#' * 40)
 x=grs.gen_r2r_maps(ht)
 for i in x:
     print(i[0], i[1])
-t1 = record.time(1392784133, 67112832)
-t2 = record.time(1392784137, 651539472)
+t1 = record.time(1392791739.893012929)
+t2 = record.time(1392791736.202898100)
 print(t2 - t1)

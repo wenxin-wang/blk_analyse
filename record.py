@@ -103,25 +103,35 @@ class table:
         else:
             marks |= MARK_UNKNOWN_OP
 
-        rs = [ r for r in self.records if r.same_offset(offset) and r.marks & marks and not r.marks & MARK_FINISHED ]
+        rs = [ r for r in self.unfinished if r.same_offset(offset) and r.marks & marks ]
+        #print(marks, len(self.unfinished), len(self.records), len(rs))
         if rs:
             for r in rs:
                 if r.same_length(length):
                     return r
+                else:
+                    r.marks |= (MARK_MERGER | MARK_FINISHED)
+                    self.unfinished.remove(r)
+                    self.records.append(r)
+
             if not r.same_length(length):
                 r1 = r.dup()
                 r1.blocks.length = length
-                self.records.append(r1)
+                self.unfinished.append(r1)
                 return r1
         else:
             r = record(offset + global_offset, length, RWBS, marks)
-            self.records.append(r)
+            self.unfinished.append(r)
             return r
 
     def read_records(self, fd=sys.stdin, global_offset=0, time_offset=time(0,0)):
         """Read records from fd"""
+        self.unfinished = []
         for line in fd:
             self.read_record(line, global_offset, time_offset)
+        for r in self.unfinished:
+            self.records.append(r)
+        del self.unfinished
 
     def read_record(self, line, global_offset, time_offset):
         """Read a record from input, find it in records and update or add a new one"""
@@ -141,7 +151,9 @@ class table:
         r.fields[f] = t # if f exists, we overwrite it
 
         if f[0] in FINAL_ACTIONS:
+            self.unfinished.remove(r)
             r.marks |= MARK_FINISHED
+            self.records.append(r)
 
     def print_table(self, fd=sys.stdout):
         """Print the table"""
@@ -193,6 +205,7 @@ class r2a_maps:
                 print(record, addr)
                 print(e)
                 continue
+            print(a2r)
             if len(a2r) > 1:
                 for piece in a2r:
                     new = record.dup()
