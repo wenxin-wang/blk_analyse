@@ -23,12 +23,43 @@ class address:
             raise ValueError('Length of a address must be larger than 0')
         self.offset = offset
         self.length = length
+        self.right = offset + length - 1
+        self.covered = False
+        self.mapped_part = []
     def __str__(self):
         """Stringlize address"""
         return "{:10d}+{:<4d}".format(self.offset, self.length)
-    def contain(self, value):
-        """Find if a block is within address"""
-        return value >= self.offset and value < self.offset + self.length
+    def contain(self, offset):
+        """Find if a offset is within address"""
+        return offset >= self.offset and offset <= self.right
+    def overlap(self, addr):
+        """Find if it overlap an addr"""
+        if self.offset <= addr.offset:
+            return self.contain(addr.offset) or addr.contain(self.right)
+        else:
+            return self.contain(addr.right) or addr.contain(self.offset)
+    def map(self, offset, length):
+        if self.covered:
+            raise ValueError("Address already covered")
+        if not self.contain(offset) or not self.contain(offset+length-1):
+            raise ValueError("Address can't map {}+{}".format(offset, length))
+        addr = address(offset, length)
+        if self.mapped(addr):
+            raise ValueError("Address already mapped {}+{}".format(offset, length))
+        self.mapped_part.append(addr)
+        l = 0
+        for a in self.mapped_part:
+            l += a.length
+        if l >= self.length:
+            self.covered = True
+    def mapped(self, addr):
+        for piece in self.mapped_part:
+            if piece.overlap(addr):
+                return True
+    def mapped_offset(self, offset):
+        for piece in self.mapped_part:
+            if piece.contain(offset):
+                return True
 
 class time:
     def __init__(self, sec=0, nanosec=0):
@@ -179,19 +210,30 @@ class r2a_maps:
     def split_grecord(self, offset, length, htable):
         """Split a guest record"""
         a2r = []
+        to_del = []
         for hr in htable.records:
+            if hr.blocks.covered:
+                to_del.append(hr)
             if length <= 0:
-                return a2r
+                break
             if hr.blocks.contain(offset):
+                if hr.blocks.mapped_offset(offset):
+                    continue
                 lth = hr.blocks.length - (offset - hr.blocks.offset)
                 if  lth >= length:
+                    hr.blocks.map(offset, length)
                     a2r.append([offset, length, hr])
-                    return a2r
+                    break
                 else:
+                    hr.blocks.map(offset, lth)
                     a2r.append([offset, lth, hr])
                     offset += lth
                     length -= lth
-        raise ValueError('Htable couldn\'t map up to logic offset {}'.format(offset))
+        for hr in to_del:
+            htable.records.remove(hr)
+        if len(a2r) == 0:
+            raise ValueError('Htable couldn\'t map up to logic offset {}'.format(offset))
+        return a2r
 
     def gen_r2r_maps(self, htable):
         """Generate r2r_maps from host table"""
@@ -205,7 +247,6 @@ class r2a_maps:
                 print(record, addr)
                 print(e)
                 continue
-            print(a2r)
             if len(a2r) > 1:
                 for piece in a2r:
                     new = record.dup()
