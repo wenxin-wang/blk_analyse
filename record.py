@@ -147,13 +147,14 @@ class table:
                 if r.same_length(length):
                     return r
                 else:
-                    r.marks |= (MARK_MERGER | MARK_FINISHED)
+                    r.marks |= (MARK_MERGED | MARK_FINISHED)
                     self.unfinished.remove(r)
                     self.records.append(r)
 
             if not r.same_length(length):
                 r1 = r.dup()
                 r1.blocks.length = length
+                r1.marks |= MARK_MERGER
                 self.unfinished.append(r1)
                 return r1
         else:
@@ -188,6 +189,10 @@ class table:
         r.fields[f] = t # if f exists, we overwrite it
 
         if f[0] in FINAL_ACTIONS:
+            if f[0] == 'M':
+                r.marks |= MARK_MERGED
+            elif f[0] == 'C':
+                r.marks |= MARK_COMPLETE
             self.unfinished.remove(r)
             r.marks |= MARK_FINISHED
             self.records.append(r)
@@ -218,6 +223,8 @@ class r2a_maps:
         a2r = []
         to_del = []
         for hr in htable.records:
+            if hr.marks & MARK_MERGER:
+                continue
             if hr.blocks.covered:
                 to_del.append(hr)
             if length <= 0:
@@ -247,6 +254,8 @@ class r2a_maps:
         r2r_maps = []
         for m in self.maps:
             record = m[0]
+            if record.marks & MARK_MERGED:
+                continue
             addr = m[1]
             try:
                 a2r = self.split_grecord(addr.offset, addr.length, htable)
