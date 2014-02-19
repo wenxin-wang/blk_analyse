@@ -60,4 +60,4 @@ print('#' * 40)
 x=grs.gen_r2r_maps(ht)
 print('#' * 40)
 for i in x:
-    print(i[0], i[1])
+    print(i[0], '\n | ', i[1])
