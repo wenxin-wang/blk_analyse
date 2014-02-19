@@ -29,15 +29,22 @@ class address:
         """Find if a block is within address"""
         return value >= self.offset and value < self.offset + self.length
 
-class field:
+class time:
     def __init__(self, sec=0, nanosec=0):
-        """Initialize a field"""
+        """Initialize a time"""
         self.sec = sec
         self.nanosec = nanosec
     def __str__(self):
-        """Stringlize a fields value"""
+        """Stringlize a times value"""
         return "{0:5d}.{1:<9d}".format(self.sec, self.nanosec)
-
+    def __sub__(self, t):
+        nanosec = self.nanosec - t.nanosec
+        sec = 0
+        if nanosec < 0:
+            nanosec += 10**9
+            sec -= 1
+        sec += (self.sec - t.sec)
+        return time(sec, nanosec)
 
 class record:
     def __init__(self, offset=0, length=0, RWBS='', marks=0):
@@ -96,12 +103,12 @@ class table:
             self.records.append(r)
             return r
 
-    def read_records(self, fd=sys.stdin, global_offset=0):
+    def read_records(self, fd=sys.stdin, global_offset=0, time_offset=[0,0]):
         """Read records from fd"""
         for line in fd:
-            self.read_record(line, global_offset)
+            self.read_record(line, global_offset, time_offset)
 
-    def read_record(self, line, global_offset):
+    def read_record(self, line, global_offset, time_offset):
         """Read a record from input, find it in records and update or add a new one"""
         marks = 0
         columns = line.split()
@@ -115,7 +122,11 @@ class table:
         r = self.find_or_add_record(offset, length, RWBS, global_offset)
 
         sec, nanosec = [ int(i) for i in columns[5].split('.') ]
-        r.fields[f] = field(sec, nanosec) # if f exists, we overwrite it
+        nanosec += time_offset[1]
+        sec += nanosec // 10**9
+        nanosec %= 10**9
+        sec += time_offset[0]
+        r.fields[f] = time(sec, nanosec) # if f exists, we overwrite it
 
         if f[0] in FINAL_ACTIONS:
             r.marks |= MARK_FINISHED
