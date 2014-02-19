@@ -160,14 +160,25 @@ class r2a_maps:
 
     def gen_r2r_maps(self, htable):
         """Generate r2r_maps from host table"""
-        ghtable = table()
+        r2r_maps = []
         for m in self.maps:
+            record = m[0]
+            addr = m[1]
             try:
-                a2r = self.split_grecord(m[1].offset, m[1].length, htable)
+                a2r = self.split_grecord(addr.offset, addr.length, htable)
             except ValueError as e:
-                print(m[0], m[1])
+                print(record, addr)
                 print(e)
                 continue
+            if len(a2r) > 1:
+                for piece in a2r:
+                    new = record.dup()
+                    new.blocks.offset = record.blocks.offset + piece[0] - addr.offset
+                    new.blocks.length = piece[1]
+                    r2r_maps.append([new, piece[2]])
+            else:
+                r2r_maps.append([record, a2r[0][2]])
+        return r2r_maps
 
 class ranges:
     def __init__(self):
@@ -220,7 +231,6 @@ class ranges:
 
     def split(self, table):
         """Split a table"""
-        index = 0
         ramaps = r2a_maps()
         for record in table.records:
             splitted = self.split_logic(record.blocks.offset, record.blocks.length)
@@ -232,5 +242,4 @@ class ranges:
                     ramaps.add(new, address(piece[1], piece[2]))
             else:
                 ramaps.add(record, address(splitted[0][1], splitted[0][2]))
-            index += 1
         return ramaps

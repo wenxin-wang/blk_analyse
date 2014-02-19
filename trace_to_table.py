@@ -54,4 +54,6 @@ print(h_block_range.find_block(721801471))
 print('#' * 40)
 #grs.print_maps()
 print('#' * 40)
-grs.gen_r2r_maps(ht)
+x=grs.gen_r2r_maps(ht)
+for i in x:
+    print(i[0], i[1])
