@@ -5,6 +5,7 @@ import sys, copy
 # A record can't have both M and C time.
 
 FIELDS = "AQGIDMC"
+TITLES=["读／写", "位置＋长度", "映射到硬盘（没用）", "意图进入队列", "得到请求", "进入队列", "送入驱动", "合并", "完成"]
 FINAL_ACTIONS = "MC"
 
 MARK_READ = 1<<0
@@ -120,6 +121,9 @@ class record:
             string += ' '
             string += self.str_field(field)
         return string
+    def to_list(self):
+        l = [ "{0:4}".format(self.RWBS) ] + [ str(self.blocks) ] + [ self.str_field(f) for f in FIELDS ]
+        return l
     def same_offset(self, offset):
         return self.blocks.offset == offset
     def same_length(self, length):

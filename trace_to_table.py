@@ -6,8 +6,8 @@
 # Arguments:
 # i:input o:output O:offset
 
-import sys, argparse
-import record
+import sys, argparse, csv
+from lib import record
 
 arg_parser = argparse.ArgumentParser(description='Tranlate blkparse output into a table of records.')
 arg_parser.add_argument('-hi', dest='hparse', help='Set host blkparse file')
@@ -59,5 +59,10 @@ print(h_block_range.find_block(721801471))
 print('#' * 40)
 x=grs.gen_r2r_maps(ht)
 print('#' * 40)
-for i in x:
-    print(i[0], '\n | ', i[1])
+
+with open('eggs.csv', 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    fds = [ 'g'+c for c in record.TITLES ] + [ 'h'+c for c in record.TITLES ]
+    writer.writerow(fds)
+    for i in x:
+        writer.writerow(i[0].to_list() + i[1].to_list())
