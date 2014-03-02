@@ -108,12 +108,16 @@ class record:
         self.fields = {}
     def dup(self):
         return copy.deepcopy(self)
-    def str_field(self, field):
-        """Stringlize a field's value if exists, else -1"""
+    def has_fielf(self, field):
+        return self.fields.__contains__(field)
+    def get_field(self, field, start=time(0,0)):
         if self.fields.__contains__(field):
-            return str(self.fields[field])
+            return self.fields[field] - start
         else:
-            return "{0:5d}.{1:<9d}".format(-1, 0)
+            return time(-1, 0)
+    def str_field(self, field, start=time(0,0)):
+        """Stringlize a field's value if exists, else -1"""
+        return str(self.get_field(field, start))
     def __str__(self):
         """Stringlize a record"""
         string = "{0:4}".format(self.RWBS) + str(self.blocks)
@@ -121,8 +125,8 @@ class record:
             string += ' '
             string += self.str_field(field)
         return string
-    def to_list(self):
-        l = [ "{0:4}".format(self.RWBS) ] + [ str(self.blocks) ] + [ self.str_field(f) for f in FIELDS ]
+    def to_list(self, start=time(0,0)):
+        l = [ "{0:4}".format(self.RWBS) ] + [ str(self.blocks) ] + [ self.str_field(f, start) for f in FIELDS ]
         return l
     def same_offset(self, offset):
         return self.blocks.offset == offset
