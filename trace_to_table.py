@@ -15,10 +15,9 @@ arg_parser.add_argument('-gi', dest='gparse', help='Set guest blkparse file')
 arg_parser.add_argument('-o', dest='output', help='Set output file')
 arg_parser.add_argument('-hO', dest='hoffset', type=int, default=0, help='Set host offset')
 arg_parser.add_argument('-gO', dest='goffset', type=int, default=0, help='Set guest offset')
-arg_parser.add_argument('-htsec', type=int, default=0, help='Set the sec part of host time offset')
-arg_parser.add_argument('-htnsec', type=int, default=0, help='Set the nanosec part of host time offset')
-arg_parser.add_argument('-gtsec', type=int, default=0, help='Set the sec part of guest time offset')
-arg_parser.add_argument('-gtnsec', type=int, default=0, help='Set the nanosec part of guest time offset')
+arg_parser.add_argument('-htfile', help='Set host time offset file')
+arg_parser.add_argument('-gtfile', help='Set guest time offset file')
+arg_parser.add_argument('-gtnsec', help='Set the nanosec part of guest time offset')
 arg_parser.add_argument('--hblock', help='Set host block file')
 arg_parser.add_argument('--gblock', help='Set guest block file')
 args = arg_parser.parse_args()
@@ -33,14 +32,31 @@ g_block_range = record.ranges()
 with open(args.gblock, encoding='utf-8') as guestblocks:
     g_block_range.read(guestblocks)
 
+if args.htfile:
+    with open(args.htfile) as f:
+        htime = record.time.from_str(f.readline())
+else: htime = record.time(0, 0)
+
+if args.gtfile:
+    with open(args.gtfile) as f:
+        gtime = record.time.from_str(f.readline())
+else: gtime = record.time(0, 0)
+
+if htime > gtime:
+    htime_gap = record.time(0, 0)
+    gtime_gap = htime - gtime
+else:
+    htime_gap = gtime - htime
+    gtime_gap = record.time(0, 0)
+
 ht = record.table()
 with open(args.hparse, encoding='utf-8') as hinput:
-    ht.read_records(hinput, args.hoffset, time_offset=record.time(args.htsec, args.htnsec))
+    ht.read_records(hinput, args.hoffset, time_offset=htime_gap)
 ht.filter(h_block_range)
 
 gt = record.table()
 with open(args.gparse, encoding='utf-8') as ginput:
-    gt.read_records(ginput, args.goffset, time_offset=record.time(args.gtsec, args.gtnsec))
+    gt.read_records(ginput, args.goffset, time_offset=gtime_gap)
 #gt.print_table(outfile)
 print('*' * 40)
 gt.filter(g_block_range)

@@ -70,20 +70,20 @@ class time:
     def __str__(self):
         """Stringlize a times value"""
         return "{0:5d}.{1:<9d}".format(self.sec, self.nanosec)
+    def __gt__(self, t):
+        if self.sec > t.sec:
+            return True
+        elif self.sec == t.sec and self.nanosec > t.nanosec:
+            return True
+        else:
+            return False
     def __sub__(self, t):
         """time __sub__ time"""
         nanosec = self.nanosec - t.nanosec
         sec = self.sec - t.sec
         if nanosec < 0:
-            if sec<=0:
-                nanosec = -nanosec
-            else:
                 nanosec += 10**9
                 sec -= 1
-        elif nanosec > 0:
-            if sec<0:
-                nanosec = 10**9 - nanosec
-                sec += 1
         return time(sec, nanosec)
     def __add__(self, t):
         """time __add__ time"""
